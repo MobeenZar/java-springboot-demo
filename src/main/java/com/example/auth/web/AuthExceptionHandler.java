@@ -2,21 +2,31 @@ package com.example.auth.web;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Maps login failures to 401 problem responses.
+ * Maps login failures to problem responses with a stable {@code errorCode}.
  * <p>
- * Every failure produces the same generic message so callers cannot probe which user ids exist, with one
- * exception: an expired password is reported explicitly, because {@code DaoAuthenticationProvider} only
- * raises it after the password was verified, and the client needs it to route the user to a
+ * Every authentication failure produces the same generic 401 message so callers cannot probe which user ids
+ * exist, with one exception: an expired password is reported explicitly, because {@code DaoAuthenticationProvider}
+ * only raises it after the password was verified, and the client needs it to route the user to a
  * password-change flow.
+ * <p>
+ * A body that fails validation or cannot be parsed gets a generic 400 that echoes no field values or parser
+ * output. Boot's own {@code ProblemDetailsExceptionHandler} also handles those exceptions and is ordered, and
+ * Spring picks the first matching advice by order rather than the most specific handler. This advice therefore
+ * runs first; it only applies to {@link AuthController}, so other controllers keep Boot's defaults.
  */
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = AuthController.class)
 public class AuthExceptionHandler {
 
@@ -30,6 +40,16 @@ public class AuthExceptionHandler {
                 "Your password has expired and must be changed");
         problem.setTitle("Password expired");
         problem.setProperty(ERROR_CODE, "PASSWORD_EXPIRED");
+        return problem;
+    }
+
+    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
+    ProblemDetail handleInvalidRequest(Exception ex) {
+        log.debug("Invalid login request: {}", ex.getClass().getSimpleName());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "The request body is missing or invalid");
+        problem.setTitle("Invalid request");
+        problem.setProperty(ERROR_CODE, "INVALID_REQUEST");
         return problem;
     }
 

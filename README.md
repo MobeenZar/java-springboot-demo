@@ -16,6 +16,7 @@ Each error below is an RFC 9457 problem (`application/problem+json`) with a stab
 
 | Situation | Status | `errorCode` | Notes |
 |---|---|---|---|
+| Login body blank, too long (password > 72) or not valid JSON | 400 | `INVALID_REQUEST` | Generic detail, no field values echoed |
 | Unknown user / wrong password | 401 | `INVALID_CREDENTIALS` | Identical for both |
 | Correct password, but expired | 401 | `PASSWORD_EXPIRED` | |
 | Missing token on protected URL | 401 | `AUTHENTICATION_REQUIRED` | `WWW-Authenticate: Bearer` |

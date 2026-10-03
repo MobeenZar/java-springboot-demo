@@ -29,6 +29,7 @@ Branch: `fix/rule-compliance` (see T0). One commit per task.
 Record the final answers here when they are made.
 
 - **D1** (2026-10-02): proposed default accepted: `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`, `ACCESS_DENIED`.
+- **D2** (2026-10-02): proposed default accepted: `INVALID_REQUEST` for both validation failures and unreadable JSON.
 
 ---
 
@@ -215,7 +216,7 @@ should add its 400 row to this table. Next: T7 (plan first, needs D2).
 ---
 
 ## T7 — `errorCode` on 400 responses from login [plan first]
-- [ ] Done
+- [x] Done
 
 **Needs:** D2 decided.
 
@@ -238,7 +239,18 @@ with the failing test. The likely fix is `@Order(Ordered.HIGHEST_PRECEDENCE)` on
 
 **Done when:** the new tests pass and `mvn verify` is green.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Used the D2 default; plan approved, with an extra 73-char password test added on request.
+`mvn verify` green (25 tests). The three 400 tests (`blankCredentialsAreBadRequest`, new `malformedJsonIsBadRequest`,
+new `passwordLongerThanBcryptLimitIsBadRequest`) share an `invalidRequest()` `ResultMatcher`. It checks 400,
+`problem+json`, `errorCode: INVALID_REQUEST`, `title: Invalid request` and the exact fixed `detail` "The request
+body is missing or invalid", which proves nothing is echoed. All three failed first. **The gotcha was real:** with the
+handler added but no `@Order`, Boot's `ProblemDetailsExceptionHandler` still answered (same failures). Adding
+`@Order(Ordered.HIGHEST_PRECEDENCE)` fixed it, and the class Javadoc explains why. One handler covers both
+`MethodArgumentNotValidException` and `HttpMessageNotReadableException`, logged at `debug` with the class name only. The
+ordering doesn't change the existing 401 handlers, because Boot's advice doesn't handle `AuthenticationException`.
+README has a 400 row. For T8: `AuthExceptionHandler` now runs before Boot's advice. The new
+`InternalAuthenticationServiceException` handler goes in the same class, and the more specific type wins within
+one advice. Next: T8 (plan first, needs D3).
 
 ---
 

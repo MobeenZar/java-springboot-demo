@@ -33,6 +33,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @SpringBootTest
@@ -127,7 +128,19 @@ class AuthIntegrationTest {
     @Test
     void blankCredentialsAreBadRequest() throws Exception {
         mockMvc.perform(loginRequest("", ""))
-                .andExpect(status().isBadRequest());
+                .andExpect(invalidRequest());
+    }
+
+    @Test
+    void malformedJsonIsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"userId\":"))
+                .andExpect(invalidRequest());
+    }
+
+    @Test
+    void passwordLongerThanBcryptLimitIsBadRequest() throws Exception {
+        mockMvc.perform(loginRequest("alice", "a".repeat(73)))
+                .andExpect(invalidRequest());
     }
 
     @Test
@@ -209,6 +222,16 @@ class AuthIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         JsonNode json = objectMapper.readTree(body);
         return json.get("access_token").asText();
+    }
+
+    /** The fixed detail proves no field value, exception message or parser output is echoed back. */
+    private static ResultMatcher invalidRequest() {
+        return ResultMatcher.matchAll(
+                status().isBadRequest(),
+                content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON),
+                jsonPath("$.errorCode").value("INVALID_REQUEST"),
+                jsonPath("$.title").value("Invalid request"),
+                jsonPath("$.detail").value("The request body is missing or invalid"));
     }
 
     private MockHttpServletRequestBuilder loginRequest(String userId, String password) throws Exception {
