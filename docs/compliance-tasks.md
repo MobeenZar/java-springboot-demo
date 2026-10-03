@@ -32,6 +32,7 @@ Record the final answers here when they are made.
 - **D1** (2026-10-02): proposed default accepted: `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`, `ACCESS_DENIED`.
 - **D2** (2026-10-02): proposed default accepted: `INVALID_REQUEST` for both validation failures and unreadable JSON.
 - **D3** (2026-10-02): proposed default accepted: 503, `errorCode: SERVICE_UNAVAILABLE`, logged at `error` with the cause.
+- **D4** (2026-10-02): proposed default accepted: fix in code (T11).
 
 ---
 
@@ -359,7 +360,7 @@ CLAUDE.md docs commit `dfc6c28` unless `main` is pushed first. Next: settle D4, 
 ---
 
 ## T11 — `errorCode` on framework MVC errors [plan first]
-- [ ] Done
+- [x] Done
 
 **Needs:** D4 decided (if D4 says "narrow the claim", skip this task and reword CLAUDE.md line 27 in T10 instead).
 
@@ -379,4 +380,26 @@ CLAUDE.md docs commit `dfc6c28` unless `main` is pushed first. Next: settle D4, 
 
 **Done when:** the new tests pass, `mvn verify` is green, and the claim in CLAUDE.md holds. Then go back to T10.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Used the D4 default; plan approved. `mvn verify` green (32 tests). New tests in
+`AuthIntegrationTest`: `unknownPathIsNotFound`, `unsupportedMethodIsMethodNotAllowed` (also asserts `Allow: GET`),
+`unsupportedContentTypeOnLoginIsRejected`, `unacceptableMediaTypeIsRejected` (406, added beyond step 1) and
+`unexpectedExceptionIsInternalErrorWithoutDetails`. They share a `frameworkProblem(...)` matcher that checks status,
+`problem+json`, `errorCode`, title (= reason phrase) and an exact fixed `detail`. All five failed first. The 500 test
+uses a nested `FailingController` brought in by `@Import` on `FixedClockConfig`. Boot's test filter keeps nested test
+classes out of component scanning, so `LoginOutageTest` doesn't get it. The test also checks the `ERROR` log line with
+`OutputCaptureExtension`.
+New `web/GlobalExceptionHandler` extends `ResponseEntityExceptionHandler`, with `@Order(LOWEST_PRECEDENCE)`, and is
+**deliberately unscoped**: 404/405 are raised before a controller is chosen, so a scoped advice never applies. This
+deviates from the "scoped advice" rule, and the Javadoc explains why. It overrides `createResponseEntity` to set the title,
+a fixed `detail` per status, and the `errorCode` (400 → `INVALID_REQUEST`, 500 → `INTERNAL_ERROR`, otherwise the
+`HttpStatus` name). Spring's headers are kept. A catch-all `Exception` handler returns 500 and logs at `error`.
+`AccessDeniedException`/`AuthenticationException` are rethrown untouched, so `@PreAuthorize` denials still reach
+`RestAccessDeniedHandler` (`methodLevelRbacIsEnforced` proves this). `spring.mvc.problemdetails.enabled` is now
+`false` (Boot would back off anyway once a `ResponseEntityExceptionHandler` bean exists). `AuthExceptionHandler`'s
+Javadoc now names the global advice as the reason for its `HIGHEST_PRECEDENCE`. Its 400/401/503 tests are unchanged
+and pass. The README table has rows for the framework errors and the 500.
+**For T10, still not covered:** errors raised outside Spring MVC still go to Boot's `/error`
+(`BasicErrorController`), which returns plain JSON with no `errorCode`. An example is an unexpected exception in a
+servlet filter. Covering that would mean a custom `ErrorAttributes`/error controller. T10 should word the CLAUDE.md
+claim to match (e.g. "errors from controllers, Spring MVC and the security filter chain"), or add a task for it.
+Next: T10.

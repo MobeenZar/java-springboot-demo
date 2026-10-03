@@ -23,6 +23,8 @@ Each error below is an RFC 9457 problem (`application/problem+json`) with a stab
 | Missing token on protected URL | 401 | `AUTHENTICATION_REQUIRED` | `WWW-Authenticate: Bearer` |
 | Invalid / expired / tampered token | 401 | `INVALID_TOKEN` | `WWW-Authenticate: Bearer error="invalid_token"`, also on public URLs |
 | Authenticated but missing role | 403 | `ACCESS_DENIED` | |
+| Unknown path / unsupported method / unsupported or unacceptable media type | 404 / 405 / 415 / 406 | `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `UNSUPPORTED_MEDIA_TYPE`, `NOT_ACCEPTABLE` | Generic detail; other framework errors use the `HttpStatus` name |
+| Unexpected exception in a controller | 500 | `INTERNAL_ERROR` | Cause logged at `error`, never returned |
 
 ## Adapting to your schema
 

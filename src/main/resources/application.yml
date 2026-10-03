@@ -26,9 +26,10 @@ spring:
     init:
       mode: never
 
+  # Framework MVC errors are answered by web.GlobalExceptionHandler (adds errorCode, generic detail), not Boot's handler.
   mvc:
     problemdetails:
-      enabled: true
+      enabled: false
 
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml

@@ -28,9 +28,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * leaves no trace. The cause never goes into the response.
  * <p>
  * A body that fails validation or cannot be parsed gets a generic 400 that echoes no field values or parser
- * output. Boot's own {@code ProblemDetailsExceptionHandler} also handles those exceptions and is ordered, and
- * Spring picks the first matching advice by order rather than the most specific handler. This advice therefore
- * runs first; it only applies to {@link AuthController}, so other controllers keep Boot's defaults.
+ * output. {@link GlobalExceptionHandler} also handles those exceptions, and Spring picks the first matching advice
+ * by order rather than the most specific handler. This advice therefore runs first; it only applies to
+ * {@link AuthController}, so other controllers get the global handling.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = AuthController.class)
