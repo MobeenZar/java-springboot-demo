@@ -26,6 +26,9 @@ Each error below is an RFC 9457 problem (`application/problem+json`) with a stab
 | Unknown path / unsupported method / unsupported or unacceptable media type | 404 / 405 / 415 / 406 | `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `UNSUPPORTED_MEDIA_TYPE`, `NOT_ACCEPTABLE` | Generic detail; other framework errors use the `HttpStatus` name |
 | Unexpected exception in a controller | 500 | `INTERNAL_ERROR` | Cause logged at `error`, never returned |
 
+Not covered: an error raised outside Spring MVC (e.g. an unexpected exception in a servlet filter) is answered by
+Boot's `/error`, which returns plain JSON with no `errorCode` (`include-message: never`, so no message leaks).
+
 ## Adapting to your schema
 
 Edit `src/main/resources/mapper/UserMapper.xml`. It assumes:

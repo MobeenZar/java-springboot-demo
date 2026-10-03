@@ -21,6 +21,8 @@ paths:
 ## Errors & HTTP
 - Map exceptions to `ProblemDetail` in a `@RestControllerAdvice` scoped with `assignableTypes`/`basePackages`.
   Include a stable `errorCode` property. Never put exception messages, SQL or stack traces in responses.
+  The one deliberate exception to scoping is `web/GlobalExceptionHandler`: unscoped and lowest precedence, because
+  404/405 are raised before a controller is chosen. Don't add another unscoped advice.
 - Security failures (401/403) are written by `RestAuthenticationEntryPoint` / `RestAccessDeniedHandler` through
   `ProblemDetailWriter`, not by controller advice (filter-chain exceptions never reach it).
 - Define custom exceptions as unchecked and specific (e.g. `InvalidJwtException`). Wrap third-party exceptions at the boundary,

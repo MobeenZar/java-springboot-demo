@@ -24,7 +24,9 @@ Key decisions (do not change without asking):
 - **Existing Oracle schema**: the app never creates or migrates tables. `spring.sql.init.mode: never` in main config
 - **Login failures are indistinguishable**: unknown user and wrong password both return `INVALID_CREDENTIALS`. Only an
   expired password (raised by `DaoAuthenticationProvider` *after* the password is verified) returns `PASSWORD_EXPIRED`
-- Errors are `ProblemDetail` with an `errorCode` property, never stack traces or exception messages
+- Errors from controllers, Spring MVC and the security filter chain are `ProblemDetail` with an `errorCode` property,
+  never stack traces or exception messages. Errors raised outside Spring MVC (e.g. in a servlet filter) still go to
+  Boot's `/error`, which returns plain JSON without an `errorCode`
 
 ## Gotchas
 

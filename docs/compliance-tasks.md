@@ -328,7 +328,7 @@ that runs schema init (`LoginOutageTest` skips it), so there's no double `CREATE
 ---
 
 ## T10 — Wrap up
-- [ ] Done
+- [x] Done
 
 **Steps**
 1. Re-check CLAUDE.md against the final code. In particular, the "Errors are ProblemDetail with an `errorCode`" claim
@@ -356,6 +356,20 @@ fall through to Boot's `/error` (`BasicErrorController`), which returns plain JS
 change, so it is D4, and the code work is split into T11. Nothing else in CLAUDE.md/README drifted from the code. Steps 2–3
 are not done: nothing pushed, no PR. Note from T0: `origin/main` is still at `7b50978`, so the PR will also carry the
 CLAUDE.md docs commit `dfc6c28` unless `main` is pushed first. Next: settle D4, then T11, then finish T10.
+
+**Handoff (finish):** (2026-10-02, after T11) Step 1 re-done against the final code. Every other CLAUDE.md claim
+holds: `JwtAuthenticationFilter` is built with `new` in `SecurityConfig` and isn't a bean, there is no argument-less
+`.now()` in `src/main`, roles are normalised in `SecurityUser`, the `{bcrypt}` fallback is in `passwordEncoder()`,
+`LoginRequest.password` has `@Size(max = 72)`, the one `#{userId}` has a `jdbcType`, and `test-schema.sql` matches the
+mapper's columns. The `errorCode` claim was still too broad, as T11 noted, so I narrowed it in CLAUDE.md to "errors from
+controllers, Spring MVC and the security filter chain". The new wording names Boot's `/error` (plain JSON, no `errorCode`)
+as the remaining gap for errors raised outside MVC, such as a servlet filter. The README has a matching "Not covered"
+note under the table. `.claude/rules/java-spring.md` now names `GlobalExceptionHandler` as the one deliberate exception
+to the "scoped advice" rule. `mvn verify` green (32 tests). A stale `ZzProbeTest` report left in `target/` by T10's
+probe has no source or class. Then this file was deleted in a separate commit, so this handoff stays in history,
+the branch was pushed and the PR was opened.
+**Branch state:** local `main` is at `495cc2d`, 12 ahead of `origin/main` (`7b50978`), and was never pushed. The PR goes to
+`origin/main`, so it carries everything from `dfc6c28` (CLAUDE.md docs) onwards.
 
 ---
 
