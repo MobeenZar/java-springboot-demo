@@ -4,13 +4,21 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 
+import com.example.auth.security.jwt.JwtProperties;
+import com.example.auth.security.jwt.JwtService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -42,6 +50,10 @@ class AuthIntegrationTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private JwtProperties jwtProperties;
+    @Autowired
+    private Clock clock;
 
     @BeforeEach
     void seedUsers() {
@@ -136,9 +148,25 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void expiredTokenIsUnauthorized() throws Exception {
+        // Issue the token far enough back that it is past exp plus the clock skew, whatever the configured TTL.
+        Instant issuedAt = clock.instant()
+                .minus(jwtProperties.accessTokenTtl())
+                .minus(jwtProperties.clockSkew())
+                .minus(Duration.ofHours(1));
+        JwtService pastJwtService = new JwtService(jwtProperties, Clock.fixed(issuedAt, ZoneOffset.UTC));
+        String expiredToken = pastJwtService.generateAccessToken("alice", List.of());
+
+        mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")));
+    }
+
+    @Test
     void invalidTokenIsRejectedEvenOnPublicEndpoint() throws Exception {
         mockMvc.perform(loginRequest("alice", PASSWORD).header(HttpHeaders.AUTHORIZATION, "Bearer not-a-jwt"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")));
     }
 
     @Test
@@ -147,7 +175,9 @@ class AuthIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/admin/ping").header(HttpHeaders.AUTHORIZATION, "Bearer " + loginAndGetToken("bob")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test
@@ -156,7 +186,9 @@ class AuthIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/reports").header(HttpHeaders.AUTHORIZATION, "Bearer " + loginAndGetToken("bob")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     private String loginAndGetToken(String userId) throws Exception {

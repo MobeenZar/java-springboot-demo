@@ -98,7 +98,7 @@ all three files was already correct otherwise. A grep of `src/test/java` found n
 ---
 
 ## T3 — Add missing HTTP assertions and the expired-token HTTP test
-- [ ] Done
+- [x] Done
 
 **File:** `AuthIntegrationTest.java`
 
@@ -115,7 +115,15 @@ This is a finding, not something to "fix" by loosening the test.
 
 **Done when:** `mvn test -Dtest=AuthIntegrationTest` and `mvn verify` are green.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Done as described. Every new assertion passed on the first run, so there were no findings.
+`mvn verify` is green (22 tests). Both 403 cases now assert `contentTypeCompatibleWith(APPLICATION_PROBLEM_JSON)` and
+`$.status == 403`, which means the method-level `@PreAuthorize` denial also goes through `RestAccessDeniedHandler`.
+`expiredTokenIsUnauthorized` autowires `JwtProperties` and the context's `Clock`, and issues the token at
+`clock.instant() - accessTokenTtl - clockSkew - 1h`. Because of that, it doesn't depend on `JWT_ACCESS_TOKEN_TTL`,
+and it stays correct when T9 replaces the `Clock` with a fixed `@Primary` one (no `Instant.now()` added). It issues
+the token for `alice` with no roles. For T6: the tests that need `$.errorCode` assertions are `missingTokenIsUnauthorized`,
+`tamperedTokenIsUnauthorized`, `expiredTokenIsUnauthorized`, `invalidTokenIsRejectedEvenOnPublicEndpoint`, and both
+403 tests. Next: T4 (plan first).
 
 ---
 
