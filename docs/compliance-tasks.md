@@ -154,7 +154,7 @@ user with no roles. `POST /api/me` still goes through the fallback (authenticate
 ---
 
 ## T5 — Fix `JwtService` NPE on a token without `exp`
-- [ ] Done
+- [x] Done
 
 **File:** `security/jwt/JwtService.java:80`, `JwtServiceTest.java`
 
@@ -169,7 +169,14 @@ token with no `exp`. This is a bug fix, so the test comes first.
 
 **Done when:** the new test passes and `mvn verify` is green.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Done as described; `mvn verify` green (23 tests). `rejectsTokenWithoutExpiration` first
+failed with the expected `NullPointerException`. It builds the token with `Jwts.builder()` (issuer `issuer`, subject,
+`iat`, no `exp`) signed with `SECRET` via `Keys.hmacShaKeyFor`. It also asserts `hasMessage("Token has no expiration")`,
+which covers step 3. `JwtService.parseAndValidate` now reads `claims.getExpiration()` into a local and throws
+`InvalidJwtException("Token has no expiration")` when it is null. It isn't re-wrapped: the `catch` only takes
+`JwtException | IllegalArgumentException`, and `InvalidJwtException` extends `AuthenticationException`. The filter
+passes it straight to the entry point, which sends 401 `invalid_token` like any other bad token. I added no HTTP test
+because the entry point branches only on the exception type, which T3 already covers. Next: T6 (plan first, needs D1).
 
 ---
 

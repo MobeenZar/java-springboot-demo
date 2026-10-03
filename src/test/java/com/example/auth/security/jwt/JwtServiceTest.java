@@ -7,8 +7,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Date;
 import java.util.List;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.WeakKeyException;
 
 import org.junit.jupiter.api.Test;
@@ -66,6 +70,20 @@ class JwtServiceTest {
                 .isInstanceOf(InvalidJwtException.class);
         assertThatThrownBy(() -> service(SECRET, "issuer", NOW).parseAndValidate(""))
                 .isInstanceOf(InvalidJwtException.class);
+    }
+
+    @Test
+    void rejectsTokenWithoutExpiration() {
+        String token = Jwts.builder()
+                .issuer("issuer")
+                .subject("alice")
+                .issuedAt(Date.from(NOW))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET)), Jwts.SIG.HS256)
+                .compact();
+
+        assertThatThrownBy(() -> service(SECRET, "issuer", NOW).parseAndValidate(token))
+                .isInstanceOf(InvalidJwtException.class)
+                .hasMessage("Token has no expiration");
     }
 
     @Test
