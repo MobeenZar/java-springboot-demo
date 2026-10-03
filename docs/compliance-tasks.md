@@ -28,6 +28,8 @@ Branch: `fix/rule-compliance` (see T0). One commit per task.
 
 Record the final answers here when they are made.
 
+- **D1** (2026-10-02): proposed default accepted: `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`, `ACCESS_DENIED`.
+
 ---
 
 ## T0 — Set up the working branch
@@ -181,7 +183,7 @@ because the entry point branches only on the exception type, which T3 already co
 ---
 
 ## T6 — `errorCode` on filter-chain 401/403 responses [plan first]
-- [ ] Done
+- [x] Done
 
 **Needs:** D1 decided.
 
@@ -201,7 +203,14 @@ because the entry point branches only on the exception type, which T3 already co
 
 **Done when:** all the new assertions pass, `mvn verify` is green, and the README matches.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Used the D1 defaults; plan approved with titles included. `mvn verify` green (23 tests). All six
+named tests got `$.errorCode` and `$.title` assertions and failed first with "No value at JSON path". The new signature is
+`ProblemDetailWriter.write(request, response, status, errorCode, title, detail)`. It sets the title and the `errorCode`
+property, using its own private `ERROR_CODE` constant rather than `web.AuthExceptionHandler`'s, so `security/` doesn't
+depend on `web/`. Titles: `Authentication required`, `Invalid token`, `Access denied`. `detail` texts, statuses and
+`WWW-Authenticate` headers are unchanged. The README error table now has Status / `errorCode` / Notes columns. Its
+intro sentence says "Each error below" rather than "every error" because login 400s have no `errorCode` until T7. T7
+should add its 400 row to this table. Next: T7 (plan first, needs D2).
 
 ---
 

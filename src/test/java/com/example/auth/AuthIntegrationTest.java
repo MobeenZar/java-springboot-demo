@@ -134,7 +134,9 @@ class AuthIntegrationTest {
     void missingTokenIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/me"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"));
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
+                .andExpect(jsonPath("$.errorCode").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.title").value("Authentication required"));
     }
 
     @Test
@@ -144,7 +146,9 @@ class AuthIntegrationTest {
 
         mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + tampered))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")));
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_TOKEN"))
+                .andExpect(jsonPath("$.title").value("Invalid token"));
     }
 
     @Test
@@ -159,14 +163,18 @@ class AuthIntegrationTest {
 
         mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + expiredToken))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")));
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_TOKEN"))
+                .andExpect(jsonPath("$.title").value("Invalid token"));
     }
 
     @Test
     void invalidTokenIsRejectedEvenOnPublicEndpoint() throws Exception {
         mockMvc.perform(loginRequest("alice", PASSWORD).header(HttpHeaders.AUTHORIZATION, "Bearer not-a-jwt"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")));
+                .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, containsString("invalid_token")))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_TOKEN"))
+                .andExpect(jsonPath("$.title").value("Invalid token"));
     }
 
     @Test
@@ -177,7 +185,9 @@ class AuthIntegrationTest {
         mockMvc.perform(get("/api/admin/ping").header(HttpHeaders.AUTHORIZATION, "Bearer " + loginAndGetToken("bob")))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
+                .andExpect(jsonPath("$.title").value("Access denied"));
     }
 
     @Test
@@ -188,7 +198,9 @@ class AuthIntegrationTest {
         mockMvc.perform(get("/api/reports").header(HttpHeaders.AUTHORIZATION, "Bearer " + loginAndGetToken("bob")))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
+                .andExpect(jsonPath("$.title").value("Access denied"));
     }
 
     private String loginAndGetToken(String userId) throws Exception {

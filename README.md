@@ -12,13 +12,15 @@ Spring Boot 3.5 / Spring Security 6 / Java 17 / MyBatis / Oracle (`ojdbc11`) / J
 5. Later requests send `Authorization: Bearer <token>`; `JwtAuthenticationFilter` validates it and fills the
    `SecurityContext` from the token's claims (no DB hit per request, no HTTP session).
 
-| Situation | Response |
-|---|---|
-| Unknown user / wrong password | 401 `errorCode: INVALID_CREDENTIALS` (identical for both) |
-| Correct password, but expired | 401 `errorCode: PASSWORD_EXPIRED` |
-| Missing token on protected URL | 401, `WWW-Authenticate: Bearer` |
-| Invalid / expired / tampered token | 401, `WWW-Authenticate: Bearer error="invalid_token"` |
-| Authenticated but missing role | 403 |
+Each error below is an RFC 9457 problem (`application/problem+json`) with a stable `errorCode` property.
+
+| Situation | Status | `errorCode` | Notes |
+|---|---|---|---|
+| Unknown user / wrong password | 401 | `INVALID_CREDENTIALS` | Identical for both |
+| Correct password, but expired | 401 | `PASSWORD_EXPIRED` | |
+| Missing token on protected URL | 401 | `AUTHENTICATION_REQUIRED` | `WWW-Authenticate: Bearer` |
+| Invalid / expired / tampered token | 401 | `INVALID_TOKEN` | `WWW-Authenticate: Bearer error="invalid_token"`, also on public URLs |
+| Authenticated but missing role | 403 | `ACCESS_DENIED` | |
 
 ## Adapting to your schema
 
