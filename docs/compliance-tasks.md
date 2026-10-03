@@ -30,6 +30,7 @@ Record the final answers here when they are made.
 
 - **D1** (2026-10-02): proposed default accepted: `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`, `ACCESS_DENIED`.
 - **D2** (2026-10-02): proposed default accepted: `INVALID_REQUEST` for both validation failures and unreadable JSON.
+- **D3** (2026-10-02): proposed default accepted: 503, `errorCode: SERVICE_UNAVAILABLE`, logged at `error` with the cause.
 
 ---
 
@@ -255,7 +256,7 @@ one advice. Next: T8 (plan first, needs D3).
 ---
 
 ## T8 — Don't report a DB outage as `INVALID_CREDENTIALS` [plan first]
-- [ ] Done
+- [x] Done
 
 **Needs:** D3 decided.
 
@@ -279,7 +280,20 @@ the class name. An outage would look like users typing wrong passwords and leave
 
 **Done when:** the new test passes and `mvn verify` is green.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Used the D3 default; plan approved. `mvn verify` green (27 tests). New
+`LoginOutageTest` (`@SpringBootTest` + `@MockitoBean UserMapper`) throws `DataAccessResourceFailureException` with a
+fake JDBC URL and `APP_USERS` in the message. `databaseOutageDuringLoginIsServiceUnavailable` checks 503,
+`problem+json`, `SERVICE_UNAVAILABLE`, title, the fixed detail, and that neither host nor table name is in the body.
+`databaseOutageIsLoggedAtErrorWithCause` uses `OutputCaptureExtension` to check for an `ERROR` line from
+`AuthExceptionHandler` and the cause message. Both failed first (401, no error log). `AuthExceptionHandler` now
+has an `InternalAuthenticationServiceException` handler that logs `log.error(..., ex)`. Its Javadoc notes that this
+also turns other unexpected user-loading failures into 503 instead of a misleading 401.
+**Found on the way:** the second context failed to start. `jdbc:h2:mem:authdb;DB_CLOSE_DELAY=-1` keeps the database
+alive across contexts, so `test-schema.sql`'s `CREATE TABLE` ran twice. I fixed it in the new class only, with
+`@SpringBootTest(properties = "spring.sql.init.mode=never")`, which is safe because the mapper is mocked. I didn't
+change `test-schema.sql` and didn't drop anything. For T9: if T9 adds a `@TestConfiguration` with `@Primary Clock`
+to `AuthIntegrationTest` only, that also gives it a separate context. That's fine (its schema init runs first or is
+skipped here), but don't add schema init to any other new context. Next: T9 (optional).
 
 ---
 

@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +21,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * exist, with one exception: an expired password is reported explicitly, because {@code DaoAuthenticationProvider}
  * only raises it after the password was verified, and the client needs it to route the user to a
  * password-change flow.
+ * <p>
+ * {@code InternalAuthenticationServiceException} is not a credentials problem: {@code DaoAuthenticationProvider}
+ * wraps any unexpected failure while loading the user (typically the database being unreachable) in it. It gets a
+ * 503 and an {@code error} log with the cause, so an outage neither looks like users mistyping passwords nor
+ * leaves no trace. The cause never goes into the response.
  * <p>
  * A body that fails validation or cannot be parsed gets a generic 400 that echoes no field values or parser
  * output. Boot's own {@code ProblemDetailsExceptionHandler} also handles those exceptions and is ordered, and
@@ -50,6 +56,16 @@ public class AuthExceptionHandler {
                 "The request body is missing or invalid");
         problem.setTitle("Invalid request");
         problem.setProperty(ERROR_CODE, "INVALID_REQUEST");
+        return problem;
+    }
+
+    @ExceptionHandler(InternalAuthenticationServiceException.class)
+    ProblemDetail handleInternalFailure(InternalAuthenticationServiceException ex) {
+        log.error("Login failed due to an internal error", ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "The service is temporarily unavailable, please try again later");
+        problem.setTitle("Service unavailable");
+        problem.setProperty(ERROR_CODE, "SERVICE_UNAVAILABLE");
         return problem;
     }
 
