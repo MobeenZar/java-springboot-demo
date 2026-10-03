@@ -25,6 +25,7 @@ Branch: `fix/rule-compliance` (see T0). One commit per task.
 | D1 | `errorCode` values for filter-chain errors | `AUTHENTICATION_REQUIRED` (no token), `INVALID_TOKEN` (bad/expired token), `ACCESS_DENIED` (403) | T6 |
 | D2 | `errorCode` for 400s on login | `INVALID_REQUEST` for both validation failures and unreadable JSON | T7 |
 | D3 | Response when login fails for infrastructure reasons (DB down) | 503, `errorCode: SERVICE_UNAVAILABLE`, logged at `error` with the cause | T8 |
+| D4 | Framework MVC errors (404/405/406/415, unhandled 500) have no `errorCode` (found in T10). Fix in code, or narrow the CLAUDE.md claim? | Fix in code (T11): a lowest-precedence global advice that adds an `errorCode` and a generic `detail` | T11, T10 |
 
 Record the final answers here when they are made.
 
@@ -334,5 +335,48 @@ that runs schema init (`LoginOutageTest` skips it), so there's no double `CREATE
 2. `mvn verify`.
 3. Delete this file (or move it out of the repo), commit, push `fix/rule-compliance`, and open a PR to `main` that
    summarises T1–T9, including the decisions D1–D3.
+
+**Handoff:** (2026-10-02) **Stopped at step 1, which turned out bigger than described.** Re-checking CLAUDE.md found
+that "Errors are `ProblemDetail` with an `errorCode`" holds for everything in the README table (login, filter chain),
+but **not** for errors Spring MVC raises itself. A throwaway probe test (since deleted) on a context with a valid token showed:
+
+| Request | Status | Body |
+|---|---|---|
+| `GET /api/nope` | 404 | `problem+json`, no `errorCode`, detail `No static resource api/nope.` |
+| `POST /api/me` | 405 | `problem+json`, no `errorCode`, detail `Method 'POST' is not supported.` |
+| `POST /api/auth/login` as `text/plain` | 415 | `problem+json`, no `errorCode`, detail echoes the request `Content-Type` |
+| `GET /api/me` with `Accept: application/xml` | 406 | `problem+json`, no `errorCode` |
+
+All four come from Boot's `ProblemDetailsExceptionHandler`. The 415 one gets past `AuthExceptionHandler` even though
+that advice is scoped to `AuthController`, because it has no handler for that exception. No stack traces or SQL leak, but
+the `detail` texts echo request data. Not probed, because no endpoint throws one: an unhandled `RuntimeException` would
+fall through to Boot's `/error` (`BasicErrorController`), which returns plain JSON with no `errorCode`
+(`include-message: never` keeps the message out). Fixing this in code or narrowing the CLAUDE.md claim is a "key decision"
+change, so it is D4, and the code work is split into T11. Nothing else in CLAUDE.md/README drifted from the code. Steps 2–3
+are not done: nothing pushed, no PR. Note from T0: `origin/main` is still at `7b50978`, so the PR will also carry the
+CLAUDE.md docs commit `dfc6c28` unless `main` is pushed first. Next: settle D4, then T11, then finish T10.
+
+---
+
+## T11 — `errorCode` on framework MVC errors [plan first]
+- [ ] Done
+
+**Needs:** D4 decided (if D4 says "narrow the claim", skip this task and reword CLAUDE.md line 27 in T10 instead).
+
+**Files:** a new global `@RestControllerAdvice` (e.g. `web/GlobalExceptionHandler.java`) or a customised
+`ResponseEntityExceptionHandler` subclass, `AuthIntegrationTest.java`, `README.md`, maybe `application.yml`
+
+**Steps**
+1. Test first, in `AuthIntegrationTest`: authenticated `GET` on an unknown path → 404, `POST /api/me` → 405, login as
+   `text/plain` → 415. Assert `problem+json`, an `errorCode` (proposal: `NOT_FOUND`, `METHOD_NOT_ALLOWED`,
+   `UNSUPPORTED_MEDIA_TYPE`), and that `detail` doesn't echo the path, method or content type. Run them and see them fail.
+2. Option to plan: subclass `ResponseEntityExceptionHandler` once (lowest precedence, so `AuthExceptionHandler` still
+   wins), override `handleExceptionInternal`/`createProblemDetail` to add `errorCode` from the status and replace
+   `detail` with a generic text, and set `spring.mvc.problemdetails.enabled: false` so Boot's copy doesn't answer
+   first. Add a catch-all `Exception` handler → 500 `INTERNAL_ERROR`, logged at `error`.
+3. Make sure `AuthExceptionHandler`'s 400/401/503 responses are unchanged (existing tests).
+4. README: add a short "other errors" row or note.
+
+**Done when:** the new tests pass, `mvn verify` is green, and the claim in CLAUDE.md holds. Then go back to T10.
 
 **Handoff:**
