@@ -27,6 +27,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,6 +45,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class AuthIntegrationTest {
 
     private static final String PASSWORD = "S3cure!pass";
+    private static final Instant FIXED_NOW = Instant.parse("2026-01-01T10:00:00Z");
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,7 +67,7 @@ class AuthIntegrationTest {
 
         // Raw BCrypt hash without {id} prefix, as a legacy table would typically store it.
         String legacyHash = passwordEncoder.encode(PASSWORD).replace("{bcrypt}", "");
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         insertUser("alice", legacyHash, now.plusDays(30), "ADMIN", "user");
         insertUser("bob", passwordEncoder.encode(PASSWORD), now.plusDays(30), "ROLE_USER");
@@ -249,5 +253,19 @@ class AuthIntegrationTest {
     }
 
     private record Credentials(String userId, String password) {
+    }
+
+    /**
+     * Fixes "now" for seed data, token issuing and expiry checks. Added as a {@code @Primary} bean under its own name
+     * because bean-definition overriding is off, so {@code ClockConfig.clock} can't be replaced by name.
+     */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FixedClockConfig {
+
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
+        }
     }
 }

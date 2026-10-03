@@ -298,7 +298,7 @@ skipped here), but don't add schema init to any other new context. Next: T9 (opt
 ---
 
 ## T9 — Fixed clock in `AuthIntegrationTest` seed data (optional)
-- [ ] Done
+- [x] Done
 
 **File:** `AuthIntegrationTest.java` (maybe a `@TestConfiguration`)
 
@@ -314,7 +314,14 @@ It's harmless today (30-day margins), so this task is low priority.
 
 **Done when:** `mvn verify` is green and there's no `LocalDateTime.now()` / `Instant.now()` left in tests.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Done as described; `mvn verify` green (27 tests). `AuthIntegrationTest` has a nested
+`@TestConfiguration(proxyBeanMethods = false) FixedClockConfig` with a `@Primary Clock fixedClock()` bean fixed at
+`2026-01-01T10:00:00Z` (UTC, the same instant `SecurityUserTest` uses). The method is named `fixedClock` so it
+doesn't collide with `ClockConfig.clock`. The autowired `clock` field and `JwtService`/`DatabaseUserDetailsService`
+all get the fixed one through `@Primary`. Seed data now uses `LocalDateTime.now(clock)`. `expiredTokenIsUnauthorized`
+needed no change, because it already computes its issue time from `clock.instant()`. A grep of `src/test` finds no
+argument-less `.now()` left. As T8 predicted, `AuthIntegrationTest` now has its own context. It is the only context
+that runs schema init (`LoginOutageTest` skips it), so there's no double `CREATE TABLE`. Next: T10.
 
 ---
 
