@@ -25,6 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -166,8 +167,7 @@ class AuthIntegrationTest {
         return json.get("access_token").asText();
     }
 
-    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder loginRequest(
-            String userId, String password) throws Exception {
+    private MockHttpServletRequestBuilder loginRequest(String userId, String password) throws Exception {
         return post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new Credentials(userId, password)));

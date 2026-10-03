@@ -77,7 +77,7 @@ was already in order, and every public type in `src/main` now has Javadoc. Next:
 ---
 
 ## T2 — Test code style cleanups (no behaviour change)
-- [ ] Done
+- [x] Done
 
 **Files:** `src/test/java/com/example/auth/AuthIntegrationTest.java`, `.../user/SecurityUserTest.java`,
 `.../security/jwt/JwtServiceTest.java`
@@ -90,7 +90,10 @@ was already in order, and every public type in `src/main` now has Javadoc. Next:
 
 **Done when:** all tests are green, and no assertion changed.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Done as described; `mvn verify` green (21 tests), and no assertion changed. The three inline
+FQNs are now imports: `MockHttpServletRequestBuilder` (the `loginRequest` signature now fits on one line),
+`java.util.Arrays`, and `WeakKeyException` (in its own `io.*` group between `java.*` and `org.*`). The import order in
+all three files was already correct otherwise. A grep of `src/test/java` found no other inline FQNs. Next: T3.
 
 ---
 
