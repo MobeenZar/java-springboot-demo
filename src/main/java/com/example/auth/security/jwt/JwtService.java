@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
 import javax.crypto.SecretKey;
 
 import io.jsonwebtoken.Claims;
@@ -77,7 +76,11 @@ public class JwtService {
             if (userId == null || userId.isBlank()) {
                 throw new InvalidJwtException("Token has no subject");
             }
-            return new AccessTokenClaims(userId, extractRoles(claims), claims.getExpiration().toInstant());
+            Date expiration = claims.getExpiration();
+            if (expiration == null) {
+                throw new InvalidJwtException("Token has no expiration");
+            }
+            return new AccessTokenClaims(userId, extractRoles(claims), expiration.toInstant());
         } catch (JwtException | IllegalArgumentException ex) {
             throw new InvalidJwtException("Invalid access token", ex);
         }

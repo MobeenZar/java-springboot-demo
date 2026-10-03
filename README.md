@@ -12,13 +12,22 @@ Spring Boot 3.5 / Spring Security 6 / Java 17 / MyBatis / Oracle (`ojdbc11`) / J
 5. Later requests send `Authorization: Bearer <token>`; `JwtAuthenticationFilter` validates it and fills the
    `SecurityContext` from the token's claims (no DB hit per request, no HTTP session).
 
-| Situation | Response |
-|---|---|
-| Unknown user / wrong password | 401 `errorCode: INVALID_CREDENTIALS` (identical for both) |
-| Correct password, but expired | 401 `errorCode: PASSWORD_EXPIRED` |
-| Missing token on protected URL | 401, `WWW-Authenticate: Bearer` |
-| Invalid / expired / tampered token | 401, `WWW-Authenticate: Bearer error="invalid_token"` |
-| Authenticated but missing role | 403 |
+Each error below is an RFC 9457 problem (`application/problem+json`) with a stable `errorCode` property.
+
+| Situation | Status | `errorCode` | Notes |
+|---|---|---|---|
+| Login body blank, too long (password > 72) or not valid JSON | 400 | `INVALID_REQUEST` | Generic detail, no field values echoed |
+| Unknown user / wrong password | 401 | `INVALID_CREDENTIALS` | Identical for both |
+| Correct password, but expired | 401 | `PASSWORD_EXPIRED` | |
+| Database unavailable during login | 503 | `SERVICE_UNAVAILABLE` | Cause logged at `error`, never returned |
+| Missing token on protected URL | 401 | `AUTHENTICATION_REQUIRED` | `WWW-Authenticate: Bearer` |
+| Invalid / expired / tampered token | 401 | `INVALID_TOKEN` | `WWW-Authenticate: Bearer error="invalid_token"`, also on public URLs |
+| Authenticated but missing role | 403 | `ACCESS_DENIED` | |
+| Unknown path / unsupported method / unsupported or unacceptable media type | 404 / 405 / 415 / 406 | `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `UNSUPPORTED_MEDIA_TYPE`, `NOT_ACCEPTABLE` | Generic detail; other framework errors use the `HttpStatus` name |
+| Unexpected exception in a controller | 500 | `INTERNAL_ERROR` | Cause logged at `error`, never returned |
+
+Not covered: an error raised outside Spring MVC (e.g. an unexpected exception in a servlet filter) is answered by
+Boot's `/error`, which returns plain JSON with no `errorCode` (`include-message: never`, so no message leaks).
 
 ## Adapting to your schema
 

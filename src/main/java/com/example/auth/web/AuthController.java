@@ -14,6 +14,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Public login endpoint that exchanges a user id and password for a short-lived bearer token.
+ * <p>
+ * Authentication failures are deliberately not caught here: they propagate to {@link AuthExceptionHandler}, which
+ * keeps unknown-user and wrong-password responses identical. The token is sent with {@code Cache-Control: no-store}
+ * so no intermediary caches it.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

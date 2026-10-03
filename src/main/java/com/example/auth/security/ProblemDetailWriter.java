@@ -13,9 +13,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Component;
 
-/** Writes RFC 7807 problem responses from inside the filter chain, where MVC advice does not apply. */
+/** Writes RFC 9457 problem responses from inside the filter chain, where MVC advice does not apply. */
 @Component
 public class ProblemDetailWriter {
+
+    private static final String ERROR_CODE = "errorCode";
 
     private final ObjectMapper objectMapper;
 
@@ -23,9 +25,18 @@ public class ProblemDetailWriter {
         this.objectMapper = objectMapper;
     }
 
-    public void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status, String detail)
-            throws IOException {
+    /**
+     * Writes the problem body with the given status.
+     *
+     * @param errorCode stable, machine-readable code clients branch on (the {@code errorCode} property)
+     * @param title     short human-readable summary of the error type
+     * @param detail    generic explanation; never an exception message, since it is sent to the client
+     */
+    public void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status,
+                      String errorCode, String title, String detail) throws IOException {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(title);
+        problem.setProperty(ERROR_CODE, errorCode);
         problem.setInstance(URI.create(request.getRequestURI()));
 
         response.setStatus(status.value());

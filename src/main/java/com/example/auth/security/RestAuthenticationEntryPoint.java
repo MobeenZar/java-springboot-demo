@@ -29,11 +29,12 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         if (authException instanceof InvalidJwtException) {
             response.setHeader(HttpHeaders.WWW_AUTHENTICATE,
                     "Bearer error=\"invalid_token\", error_description=\"The access token is invalid or expired\"");
-            problemDetailWriter.write(request, response, HttpStatus.UNAUTHORIZED,
+            problemDetailWriter.write(request, response, HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "Invalid token",
                     "The access token is invalid or expired");
         } else {
             response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
-            problemDetailWriter.write(request, response, HttpStatus.UNAUTHORIZED, "Authentication is required");
+            problemDetailWriter.write(request, response, HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    "Authentication required", "Authentication is required");
         }
     }
 }

@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -49,7 +50,7 @@ class SecurityUserTest {
         account.setUserId("alice");
         account.setPasswordHash("hash");
         account.setPasswordExpiresAt(expiresAt);
-        account.setRoles(new LinkedHashSet<>(java.util.Arrays.asList(roles)));
+        account.setRoles(new LinkedHashSet<>(Arrays.asList(roles)));
         return account;
     }
 }
