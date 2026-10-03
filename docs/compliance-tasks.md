@@ -128,7 +128,7 @@ the token for `alice` with no roles. For T6: the tests that need `$.errorCode` a
 ---
 
 ## T4 — Explicit authorization rule for `/api/me` [plan first]
-- [ ] Done
+- [x] Done
 
 **File:** `config/SecurityConfig.java`
 
@@ -142,7 +142,14 @@ endpoint needs an explicit decision.
 
 **Done when:** `mvn verify` is green.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Plan approved and done as described; `mvn verify` green (22 tests). `SecurityConfig` now has
+`.requestMatchers(HttpMethod.GET, "/api/me").authenticated()` after the `/error` rule, and the
+`anyRequest().authenticated()` fallback is kept. The planning pass checked every endpoint: `/api/admin/ping` is covered
+by `/api/admin/**` → `hasRole("ADMIN")`, and `GET /api/reports` reaches the controller through the fallback but has its own
+`@PreAuthorize`, which counts as its explicit decision (per the class Javadoc and the rule). So `/api/me` was the only gap,
+and no test was added: `missingTokenIsUnauthorized`, `loginReturnsBearerTokenUsableOnProtectedEndpoint` and
+`nullExpiryMeansPasswordNeverExpiresAndUserWithoutRolesCanLogIn` already cover 401 without a token and 200 with one, including a
+user with no roles. `POST /api/me` still goes through the fallback (authenticated, then 405), as before. Next: T5.
 
 ---
 

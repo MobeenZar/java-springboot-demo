@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/me").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Must run before UsernamePasswordAuthenticationFilter so the SecurityContext is populated
