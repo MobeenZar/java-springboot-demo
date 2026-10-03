@@ -13,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Component;
 
-/** Writes RFC 7807 problem responses from inside the filter chain, where MVC advice does not apply. */
+/** Writes RFC 9457 problem responses from inside the filter chain, where MVC advice does not apply. */
 @Component
 public class ProblemDetailWriter {
 

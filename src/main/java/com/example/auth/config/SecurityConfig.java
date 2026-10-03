@@ -1,11 +1,11 @@
 package com.example.auth.config;
 
+import java.util.Map;
+
 import com.example.auth.security.RestAccessDeniedHandler;
 import com.example.auth.security.RestAuthenticationEntryPoint;
 import com.example.auth.security.jwt.JwtAuthenticationFilter;
 import com.example.auth.security.jwt.JwtService;
-
-import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +25,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Security setup for a stateless bearer-token API.
+ * <p>
+ * No HTTP session, no CSRF protection (nothing is authenticated by cookie) and no database lookup per request:
+ * {@link JwtAuthenticationFilter} rebuilds the {@code SecurityContext} from the token's claims. The filter is
+ * created here instead of being declared as a bean, because Boot would also register a filter bean in the servlet
+ * chain and it would run twice. URL rules here are coarse; per-method role checks use {@code @PreAuthorize}.
+ */
 @Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 @EnableMethodSecurity

@@ -25,7 +25,7 @@ public class AuthExceptionHandler {
     static final String ERROR_CODE = "errorCode";
 
     @ExceptionHandler(CredentialsExpiredException.class)
-    public ProblemDetail handleCredentialsExpired(CredentialsExpiredException ex) {
+    ProblemDetail handleCredentialsExpired(CredentialsExpiredException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
                 "Your password has expired and must be changed");
         problem.setTitle("Password expired");
@@ -34,7 +34,7 @@ public class AuthExceptionHandler {
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ProblemDetail handleAuthenticationFailure(AuthenticationException ex) {
+    ProblemDetail handleAuthenticationFailure(AuthenticationException ex) {
         log.debug("Login failed: {}", ex.getClass().getSimpleName());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
                 "Invalid user ID or password");

@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
 import javax.crypto.SecretKey;
 
 import io.jsonwebtoken.Claims;

@@ -51,7 +51,7 @@ green. `docs/claude-md` still exists locally and can be deleted. Next: T1.
 ---
 
 ## T1 — Style fixes in production code (no behaviour change)
-- [ ] Done
+- [x] Done
 
 **Files:** `config/SecurityConfig.java`, `web/AuthController.java`, `web/LoginRequest.java`, `AuthApplication.java`,
 `security/ProblemDetailWriter.java`, `web/AuthExceptionHandler.java` (all under `src/main/java/com/example/auth/`)
@@ -67,7 +67,12 @@ green. `docs/claude-md` still exists locally and can be deleted. Next: T1.
 
 **Done when:** `mvn verify` is green, the diff has only imports, Javadoc and visibility changes.
 
-**Handoff:**
+**Handoff:** (2026-10-02) Done as described; `mvn verify` green. `SecurityConfig` imports now go `java.*` before
+`com.*`. Javadoc added to `SecurityConfig`, `AuthController`, `LoginRequest` (with `@param`s; the inline 72-char
+comment moved into the Javadoc) and `AuthApplication`. `ProblemDetailWriter` now says RFC 9457. Both
+`AuthExceptionHandler` handlers are package-private. Step 5 scan found one more case: `JwtService` had a blank line
+between `java.*` and `javax.*`, which the rule treats as one group, so they're joined now. Every other `src/main` file
+was already in order, and every public type in `src/main` now has Javadoc. Next: T2.
 
 ---
 
